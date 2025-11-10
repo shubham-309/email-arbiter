@@ -1,7 +1,7 @@
+import json
 from openai import OpenAI
 from typing import List, Dict
-
-client = OpenAI()
+from src.utils import client  # Reuse client
 
 EVENT_CLASSES = ["proposal", "approval", "confirmation", "rejection", "request", "other"]
 
@@ -12,7 +12,7 @@ def tag_events(thread_emails: List[Dict]) -> List[Dict[str, str]]:
         prompt = f"""
         Classify this email body into one event: {', '.join(EVENT_CLASSES)}.
         Body: {email['body_clean']}
-        Output: JSON {"event": "class"}
+        Output: JSON {{"event": "class"}}
         """
         response = client.chat.completions.create(
             model="gpt-4o-mini",
