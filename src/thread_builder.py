@@ -1,10 +1,8 @@
 import networkx as nx
-from openai import OpenAI
-from typing import List, Dict, Any, Optional
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-
-client = OpenAI()
+from typing import List, Dict, Any, Optional
+from src.utils import get_embedding
 
 def build_thread_graph(emails: List[Dict]) -> Dict[str, List[str]]:
     """Build reply graph using references/in_reply_to."""
@@ -26,10 +24,11 @@ def build_thread_graph(emails: List[Dict]) -> Dict[str, List[str]]:
 
     # Extract threads (weakly connected components)
     threads = {}
+    email_id_to_date = {e['id']: e['date'] for e in emails}
     for component in nx.weakly_connected_components(G):
-        root = min(component, key=lambda x: next(e['date'] for e in emails if e['id'] == x))
+        root = min(component, key=lambda x: email_id_to_date[x])
         thread_emails = [e['id'] for e in emails if e['id'] in component]
-        sorted_thread = sorted(thread_emails, key=lambda x: next(e['date'] for e in emails if e['id'] == x))
+        sorted_thread = sorted(thread_emails, key=lambda x: email_id_to_date[x])
         threads[root] = sorted_thread
     return threads
 
@@ -53,7 +52,3 @@ def arbitrate_with_llm(emails: List[Dict], orphan_id: str) -> Optional[str]:
         if "Yes" in response.choices[0].message.content:
             return candidates[best_idx]['id']
     return None
-
-def get_embedding(text: str) -> List[float]:
-    response = client.embeddings.create(model="text-embedding-3-small", input=text)
-    return response.data[0].embedding
